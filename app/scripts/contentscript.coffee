@@ -24,15 +24,7 @@ isRange = ()->
 attachEventHandlers = ()->
 
 	# when the user presses Cmd + K, enable link edit
-	key '⌘+k, ctrl+k', ()->
-
-		# if there is some text selected, pop up the link inserter
-		if isRange()
-			# addLink selectedText
-			sel = rangy.getSelection()
-			promptForUrl (url)->
-				if url
-					replaceSelectionWithLink sel, url
+	key '⌘+k, ctrl+k', insertLink
 
 	# when a node changes, re-render the links
 	$('.project.selected').on 'input', '.content', (e)->
@@ -78,8 +70,15 @@ replaceSelectionWithLink = (sel, url)->
 	replaceSelection sel, (content)->
 		"<a class=\"contentLink\" href=\"#{url}\">#{content}</a>"
 
-addLink = ()->
-	return
+insertLink = ()->
+	# if there is some text selected, pop up the link inserter
+	if isRange()
+		# addLink selectedText
+		sel = rangy.getSelection()
+		promptForUrl (url)->
+			if url
+				replaceSelectionWithLink sel, url
+
 
 # parse the given element to see if there are any embedded links
 parseLinks = ($el)->

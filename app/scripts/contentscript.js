@@ -1,6 +1,6 @@
 (function() {
   'use strict';
-  var addLink, attachEventHandlers, getSelectionHtml, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink;
+  var attachEventHandlers, getSelectionHtml, insertLink, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink;
 
   console.log('content script loaded');
 
@@ -26,17 +26,7 @@
   };
 
   attachEventHandlers = function() {
-    key('⌘+k, ctrl+k', function() {
-      var sel;
-      if (isRange()) {
-        sel = rangy.getSelection();
-        return promptForUrl(function(url) {
-          if (url) {
-            return replaceSelectionWithLink(sel, url);
-          }
-        });
-      }
-    });
+    key('⌘+k, ctrl+k', insertLink);
     return $('.project.selected').on('input', '.content', function(e) {
       var $content;
       $content = $(e.currentTarget);
@@ -81,7 +71,17 @@
     });
   };
 
-  addLink = function() {};
+  insertLink = function() {
+    var sel;
+    if (isRange()) {
+      sel = rangy.getSelection();
+      return promptForUrl(function(url) {
+        if (url) {
+          return replaceSelectionWithLink(sel, url);
+        }
+      });
+    }
+  };
 
   parseLinks = function($el) {
     return console.log('content changed');
