@@ -77,8 +77,15 @@ insertLink = ()->
 		sel = rangy.getSelection()
 		promptForUrl (url)->
 			if url
-				replaceSelectionWithLink sel, url
+				replaceSelectionWithLink sel, validateUrl url
 
+# adds http:// if needed
+validateUrl = (url)->
+
+	if url.indexOf ':' > -1
+		url = 'http://' + url
+
+	url
 
 # parse the given element to see if there are any embedded links
 parseLinks = ($el)->

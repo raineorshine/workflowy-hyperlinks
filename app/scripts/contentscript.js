@@ -1,6 +1,6 @@
 (function() {
   'use strict';
-  var attachEventHandlers, getSelectionHtml, insertLink, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink;
+  var attachEventHandlers, getSelectionHtml, insertLink, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink, validateUrl;
 
   console.log('content script loaded');
 
@@ -77,10 +77,17 @@
       sel = rangy.getSelection();
       return promptForUrl(function(url) {
         if (url) {
-          return replaceSelectionWithLink(sel, url);
+          return replaceSelectionWithLink(sel, validateUrl(url));
         }
       });
     }
+  };
+
+  validateUrl = function(url) {
+    if (url.indexOf(':' > -1)) {
+      url = 'http://' + url;
+    }
+    return url;
   };
 
   parseLinks = function($el) {
