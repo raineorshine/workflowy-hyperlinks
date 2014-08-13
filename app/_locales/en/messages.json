@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Hyperlinks for Workflowy",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "Embed links in Workflowy using markdown syntax.",
+    "description": "The description of the application"
+  }
+}
