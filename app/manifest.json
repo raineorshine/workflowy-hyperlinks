@@ -25,6 +25,7 @@
 			],
 			"js": [
 				"bower_components/jquery/dist/jquery.min.js",
+				"bower_components/bluebird/js/browser/bluebird.js",
 				"bower_components/keymaster/keymaster.js",
 				"bower_components/rangy/rangy-core.js",
 				"scripts/contentscript.js"

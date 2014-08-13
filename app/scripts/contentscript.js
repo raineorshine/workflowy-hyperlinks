@@ -34,24 +34,25 @@
     });
   };
 
-  promptForUrl = function(cb) {
+  promptForUrl = function() {
     var $urlInput;
     $urlInput = $('<input class="addlink-input" placeholder="URL">');
-    $urlInput.on('keypress', function(e) {
-      var val;
-      val = $urlInput.val();
-      if (e.which === 13) {
-        $urlInput.remove();
-        if (val) {
-          return cb(val);
-        }
-      }
-    });
-    $urlInput.on('blur', function() {
-      return $urlInput.remove();
-    });
     $('body').append($urlInput);
-    return $urlInput.focus();
+    $urlInput.focus();
+    return new Promise(function(resolve, reject) {
+      $urlInput.on('keypress', function(e) {
+        var val;
+        val = $urlInput.val();
+        if (e.which === 13) {
+          $urlInput.remove();
+          return resolve(val);
+        }
+      });
+      return $urlInput.on('blur', function() {
+        $urlInput.remove();
+        return reject();
+      });
+    });
   };
 
   replaceSelection = function(sel, content) {
@@ -75,11 +76,11 @@
     var sel;
     if (isRange()) {
       sel = rangy.getSelection();
-      return promptForUrl(function(url) {
+      return promptForUrl().then(function(url) {
         if (url) {
           return replaceSelectionWithLink(sel, validateUrl(url));
         }
-      });
+      })["catch"](function() {});
     }
   };
 
