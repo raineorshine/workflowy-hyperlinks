@@ -2,19 +2,29 @@
 
 console.log 'content script loaded'
 
-getSelectionHtml = ->
-	html = ""
-	sel = window.getSelection()
-	if sel.rangeCount
-		container = document.createElement("div")
-		i = 0
-		len = sel.rangeCount
+dbObject = {}
 
-		while i < len
-			container.appendChild sel.getRangeAt(i).cloneContents()
-			++i
-		html = container.innerHTML
-	html
+db =
+
+	load: ()->
+		loadedDbObject = localStorage.getItem('hyperlink')
+		if loadedDbObject
+			dbObject = JSON.parse(loadedDbObject)
+
+	save: ()->
+		localStorage.setItem 'hyperlink', JSON.stringify(dbObject)
+
+	saveLink: (projectid, content, url)->
+		dbObject[projectid] = dbObject[projectid] or {}
+		dbObject[projectid][content] = url
+		db.save()
+
+	getProjectLinks: (projectid)->
+		dbObject[projectid]
+
+	getLink: (projectid, content)->
+		dbObject[projectid][content]
+
 
 # returns true if some text is selected
 isRange = ()->
@@ -29,7 +39,7 @@ attachEventHandlers = ()->
 	# when a node changes, re-render the links
 	$('.project.selected').on 'input', '.content', (e)->
 		$content = $ e.currentTarget
-		parseLinks $content
+		restoreLinks $content
 
 # returns the promise of a url entered by the user
 promptForUrl = ()->
@@ -67,7 +77,19 @@ replaceSelection = (sel, content)->
 # replace the selection with a link that to the given url
 replaceSelectionWithLink = (sel, url)->
 	replaceSelection sel, (content)->
-		"<a class=\"contentLink\" href=\"#{url}\">#{content}</a>"
+
+		# get the node's project id
+		$parent = $ sel.focusNode.parentElement
+		projectid = $parent.closest('.project').attr('projectid')
+
+		# save the url to localStorage
+		db.saveLink projectid, content, url
+
+		# pass the link HTML to replaceSelection
+		createLinkHtml content, url
+
+createLinkHtml = (content, url)->
+	"<a class=\"contentLink\" href=\"#{url}\">#{content}</a>"
 
 insertLink = ()->
 
@@ -92,10 +114,33 @@ validateUrl = (url)->
 
 	url
 
-# parse the given element to see if there are any embedded links
-parseLinks = ($el)->
-	console.log('content changed')
+# gets the project id of the closest .project ancestor of the given element
+getClosestProjectId = ($el)->
+	$el.closest('.project').attr('projectid')
 
+# parse the given element to see if there are any embedded links that need to be restored
+restoreLinks = ($el)->
+
+	setTimeout ()->
+
+		sel = rangy.getSelection()
+		offset = sel.focusOffset
+		range = sel.getRangeAt(0)
+		console.log sel
+
+		links = db.getProjectLinks getClosestProjectId $el
+		for content,url of links
+			$el.html $el.html().replace new RegExp(content, 'g'), createLinkHtml content, url
+			# sel.collapse($el[0], sel.focusOffset)
+			range = rangy.createRange()
+			range.setStart $el[0].firstChild, offset
+			range.collapse true
+			sel = rangy.getSelection()
+			sel.setSingleRange(range)
+
+	, 50
+
+# main
+db.load()
 $ ()->
-	console.log 'domread'
 	attachEventHandlers()

@@ -1,24 +1,33 @@
 (function() {
   'use strict';
-  var attachEventHandlers, getSelectionHtml, insertLink, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink, validateUrl;
+  var attachEventHandlers, createLinkHtml, db, dbObject, getClosestProjectId, insertLink, isRange, promptForUrl, replaceSelection, replaceSelectionWithLink, restoreLinks, validateUrl;
 
   console.log('content script loaded');
 
-  getSelectionHtml = function() {
-    var container, html, i, len, sel;
-    html = "";
-    sel = window.getSelection();
-    if (sel.rangeCount) {
-      container = document.createElement("div");
-      i = 0;
-      len = sel.rangeCount;
-      while (i < len) {
-        container.appendChild(sel.getRangeAt(i).cloneContents());
-        ++i;
+  dbObject = {};
+
+  db = {
+    load: function() {
+      var loadedDbObject;
+      loadedDbObject = localStorage.getItem('hyperlink');
+      if (loadedDbObject) {
+        return dbObject = JSON.parse(loadedDbObject);
       }
-      html = container.innerHTML;
+    },
+    save: function() {
+      return localStorage.setItem('hyperlink', JSON.stringify(dbObject));
+    },
+    saveLink: function(projectid, content, url) {
+      dbObject[projectid] = dbObject[projectid] || {};
+      dbObject[projectid][content] = url;
+      return db.save();
+    },
+    getProjectLinks: function(projectid) {
+      return dbObject[projectid];
+    },
+    getLink: function(projectid, content) {
+      return dbObject[projectid][content];
     }
-    return html;
   };
 
   isRange = function() {
@@ -30,7 +39,7 @@
     return $('.project.selected').on('input', '.content', function(e) {
       var $content;
       $content = $(e.currentTarget);
-      return parseLinks($content);
+      return restoreLinks($content);
     });
   };
 
@@ -68,8 +77,16 @@
 
   replaceSelectionWithLink = function(sel, url) {
     return replaceSelection(sel, function(content) {
-      return "<a class=\"contentLink\" href=\"" + url + "\">" + content + "</a>";
+      var $parent, projectid;
+      $parent = $(sel.focusNode.parentElement);
+      projectid = $parent.closest('.project').attr('projectid');
+      db.saveLink(projectid, content, url);
+      return createLinkHtml(content, url);
     });
+  };
+
+  createLinkHtml = function(content, url) {
+    return "<a class=\"contentLink\" href=\"" + url + "\">" + content + "</a>";
   };
 
   insertLink = function() {
@@ -91,12 +108,35 @@
     return url;
   };
 
-  parseLinks = function($el) {
-    return console.log('content changed');
+  getClosestProjectId = function($el) {
+    return $el.closest('.project').attr('projectid');
   };
 
+  restoreLinks = function($el) {
+    return setTimeout(function() {
+      var content, links, offset, range, sel, url, _results;
+      sel = rangy.getSelection();
+      offset = sel.focusOffset;
+      range = sel.getRangeAt(0);
+      console.log(sel);
+      links = db.getProjectLinks(getClosestProjectId($el));
+      _results = [];
+      for (content in links) {
+        url = links[content];
+        $el.html($el.html().replace(new RegExp(content, 'g'), createLinkHtml(content, url)));
+        range = rangy.createRange();
+        range.setStart($el[0].firstChild, offset);
+        range.collapse(true);
+        sel = rangy.getSelection();
+        _results.push(sel.setSingleRange(range));
+      }
+      return _results;
+    }, 50);
+  };
+
+  db.load();
+
   $(function() {
-    console.log('domread');
     return attachEventHandlers();
   });
 
