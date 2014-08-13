@@ -1,5 +1,7 @@
 'use strict';
 
+console.log 'content script loaded'
+
 getSelectionHtml = ->
 	html = ""
 	sel = window.getSelection()
@@ -14,6 +16,10 @@ getSelectionHtml = ->
 		html = container.innerHTML
 	html
 
+# returns true if some text is selected
+isRange = ()->
+	window.getSelection().type is 'Range'
+
 # attach all event handlers to the page
 attachEventHandlers = ()->
 
@@ -21,22 +27,30 @@ attachEventHandlers = ()->
 	key '⌘+k, ctrl+k', ()->
 
 		# if there is some text selected, pop up the link inserter
-		selectedText = getSelectionHtml()
-		if selectedText > 0
+		if isRange()
 			# addLink selectedText
-			replaceSelect 'test'
+			replaceSelectionWithLink 'http://google.com'
 
 	# when a node changes, re-render the links
 	$('.project.selected').on 'input', '.content', (e)->
 		$content = $ e.currentTarget
 		parseLinks $content
 
-replaceSelection (content)->
+# replace the selection with the given content (string, element, or function of the text)
+replaceSelection = (content)->
+
+	contentFunction = if typeof content is 'function' then content else ()->content
+
 	sel = rangy.getSelection()
 	range = sel.getRangeAt(0)
+	node = range.createContextualFragment contentFunction sel.toString()
 	range.deleteContents()
-	node = range.createContextualFragment("<span><font color=\"red\">hoho</font></span>")
 	range.insertNode node
+
+# replace the selection with a link that to the given url
+replaceSelectionWithLink = (url)->
+	replaceSelection (content)->
+		"<a class=\"contentLink\" href=\"#{url}\">#{content}</a>"
 
 addLink = ()->
 	return
@@ -46,4 +60,5 @@ parseLinks = ($el)->
 	console.log('content changed')
 
 $ ()->
+	console.log 'domread'
 	attachEventHandlers()
