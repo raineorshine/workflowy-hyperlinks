@@ -29,27 +29,53 @@ attachEventHandlers = ()->
 		# if there is some text selected, pop up the link inserter
 		if isRange()
 			# addLink selectedText
-			replaceSelectionWithLink 'http://google.com'
+			sel = rangy.getSelection()
+			promptForUrl (url)->
+				if url
+					replaceSelectionWithLink sel, url
 
 	# when a node changes, re-render the links
 	$('.project.selected').on 'input', '.content', (e)->
 		$content = $ e.currentTarget
 		parseLinks $content
 
+# prompts the user for a url and invokes the callback with the entered value if not blank
+# @param cb: () -> String
+promptForUrl = (cb)->
+
+	# create the input element
+	$urlInput = $ '<input class="addlink-input" placeholder="URL">'
+
+	# when the input element is submitted, make sure the result isn't empty, invoke the callback, and remove the input
+	$urlInput.on 'keypress', (e)->
+		val = $urlInput.val()
+
+		if e.which is 13
+			$urlInput.remove()
+			if val
+				cb val
+
+	# when focus leaves the input, remvoe it
+	$urlInput.on 'blur', ()->
+		$urlInput.remove()
+
+	# append the input element to the DOM and focus on it
+	$('body').append $urlInput
+	$urlInput.focus()
+
 # replace the selection with the given content (string, element, or function of the text)
-replaceSelection = (content)->
+replaceSelection = (sel, content)->
 
 	contentFunction = if typeof content is 'function' then content else ()->content
 
-	sel = rangy.getSelection()
 	range = sel.getRangeAt(0)
 	node = range.createContextualFragment contentFunction sel.toString()
 	range.deleteContents()
 	range.insertNode node
 
 # replace the selection with a link that to the given url
-replaceSelectionWithLink = (url)->
-	replaceSelection (content)->
+replaceSelectionWithLink = (sel, url)->
+	replaceSelection sel, (content)->
 		"<a class=\"contentLink\" href=\"#{url}\">#{content}</a>"
 
 addLink = ()->

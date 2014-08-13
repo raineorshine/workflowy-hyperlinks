@@ -1,6 +1,6 @@
 (function() {
   'use strict';
-  var addLink, attachEventHandlers, getSelectionHtml, isRange, parseLinks, replaceSelection, replaceSelectionWithLink;
+  var addLink, attachEventHandlers, getSelectionHtml, isRange, parseLinks, promptForUrl, replaceSelection, replaceSelectionWithLink;
 
   console.log('content script loaded');
 
@@ -27,8 +27,14 @@
 
   attachEventHandlers = function() {
     key('⌘+k, ctrl+k', function() {
+      var sel;
       if (isRange()) {
-        return replaceSelectionWithLink('http://google.com');
+        sel = rangy.getSelection();
+        return promptForUrl(function(url) {
+          if (url) {
+            return replaceSelectionWithLink(sel, url);
+          }
+        });
       }
     });
     return $('.project.selected').on('input', '.content', function(e) {
@@ -38,20 +44,39 @@
     });
   };
 
-  replaceSelection = function(content) {
-    var contentFunction, node, range, sel;
+  promptForUrl = function(cb) {
+    var $urlInput;
+    $urlInput = $('<input class="addlink-input" placeholder="URL">');
+    $urlInput.on('keypress', function(e) {
+      var val;
+      val = $urlInput.val();
+      if (e.which === 13) {
+        $urlInput.remove();
+        if (val) {
+          return cb(val);
+        }
+      }
+    });
+    $urlInput.on('blur', function() {
+      return $urlInput.remove();
+    });
+    $('body').append($urlInput);
+    return $urlInput.focus();
+  };
+
+  replaceSelection = function(sel, content) {
+    var contentFunction, node, range;
     contentFunction = typeof content === 'function' ? content : function() {
       return content;
     };
-    sel = rangy.getSelection();
     range = sel.getRangeAt(0);
     node = range.createContextualFragment(contentFunction(sel.toString()));
     range.deleteContents();
     return range.insertNode(node);
   };
 
-  replaceSelectionWithLink = function(url) {
-    return replaceSelection(function(content) {
+  replaceSelectionWithLink = function(sel, url) {
+    return replaceSelection(sel, function(content) {
       return "<a class=\"contentLink\" href=\"" + url + "\">" + content + "</a>";
     });
   };
